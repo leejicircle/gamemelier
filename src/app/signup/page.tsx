@@ -1,11 +1,11 @@
 'use client'
 
 import { useFormStatus } from 'react-dom'
+import { signupAction } from './actions'
 import { useActionState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { loginAction } from './actions'
 import { useAuthStore } from '@/store/useAuthStore'
 
 // 폼 제출 버튼 컴포넌트 (useFormStatus 사용)
@@ -16,22 +16,22 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
     >
-      {pending ? '로그인 중...' : '로그인'}
+      {pending ? '가입 중...' : '회원가입'}
     </button>
   )
 }
 
-export default function LoginPage() {
-  const [state, formAction] = useActionState(loginAction, { error: '', success: false, user: undefined })
+export default function SignupPage() {
+  const [state, formAction] = useActionState(signupAction, { error: '', success: false, user: undefined })
   const router = useRouter()
   const setUser = useAuthStore((state) => state.setUser)
 
-  // 로그인 성공 시 Zustand 스토어 업데이트 및 리다이렉트 처리
+  // 회원가입 성공 시 Zustand 스토어 업데이트 및 리다이렉트 처리
   useEffect(() => {
     if (state?.success && state?.user) {
-      console.log('클라이언트에서 Zustand 스토어 업데이트 및 리다이렉트 실행')
+      console.log('회원가입 성공: Zustand 스토어 업데이트 및 리다이렉트 실행')
       // Zustand 스토어에 사용자 정보 저장
       setUser(state.user)
       // 홈페이지로 리다이렉트
@@ -42,7 +42,7 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
       <div className="p-8 bg-white rounded shadow-md w-96">
-        <h1 className="text-2xl font-bold mb-6 text-center">로그인</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center">회원가입</h1>
         
         <form action={formAction} className="space-y-4">
           <div className="mb-4">
@@ -57,7 +57,7 @@ export default function LoginPage() {
               name="email"
               type="email"
               required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
               placeholder="이메일을 입력하세요"
             />
           </div>
@@ -74,8 +74,9 @@ export default function LoginPage() {
               name="password"
               type="password"
               required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="비밀번호를 입력하세요"
+              minLength={6}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+              placeholder="비밀번호를 입력하세요 (최소 6자)"
             />
           </div>
           
@@ -90,12 +91,12 @@ export default function LoginPage() {
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
-            계정이 없으신가요?{' '}
+            이미 계정이 있으신가요?{' '}
             <Link 
-              href="/signup" 
-              className="text-green-600 hover:text-green-800 font-medium"
+              href="/login" 
+              className="text-indigo-600 hover:text-indigo-800 font-medium"
             >
-              회원가입
+              로그인
             </Link>
           </p>
         </div>

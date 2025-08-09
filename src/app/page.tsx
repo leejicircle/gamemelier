@@ -1,24 +1,32 @@
-// app/page.tsx
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import ClientAuthStatus from "@/components/auth/ClientAuthStatus";
+import AuthButtons from "@/components/auth/AuthButtons";
+
+import { createClient } from "@/utils/supabase/server";
 
 export default async function HomePage() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
+  console.log(user?.email);
   return (
-    <main style={{ padding: 20 }}>
+    <main style={{ padding: "20px" }}>
       {user ? (
         <>
           <h1>환영합니다, {user.email}님!</h1>
-          <p>여기는 로그인 후 볼 수 있는 홈 페이지입니다.</p>
+          {/* 클라이언트 컴포넌트에 초기 로그인 상태 전달 */}
+          <ClientAuthStatus initialUser={{ id: user.id, email: user.email! }} />
+
+          <AuthButtons />
         </>
       ) : (
         <>
           <h1>환영합니다!</h1>
-          <p>로그인 후 더 많은 기능을 이용할 수 있습니다.</p>
-          <a href="/login">로그인 하러 가기</a>
+          {/* 비로그인 상태임을 클라이언트 컴포넌트에 전달 */}
+          <ClientAuthStatus initialUser={null} />
+
+          <AuthButtons />
         </>
       )}
     </main>
