@@ -1,12 +1,11 @@
-"use client";
+'use client';
 
-import { useFormStatus } from "react-dom";
+import { useFormStatus } from 'react-dom';
+import { useActionState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { loginAction } from './actions';
 
-import { useFormState } from "react-dom";
-import Link from "next/link";
-import { loginAction } from "./actions";
-
-// 폼 제출 버튼 컴포넌트 (useFormStatus 사용)
 function SubmitButton() {
   const { pending } = useFormStatus();
 
@@ -16,13 +15,20 @@ function SubmitButton() {
       disabled={pending}
       className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
     >
-      {pending ? "로그인 중..." : "로그인"}
+      {pending ? '로그인 중...' : '로그인'}
     </button>
   );
 }
 
 export default function LoginPage() {
-  const [state, formAction] = useFormState(loginAction, { error: "" });
+  const [state, formAction] = useActionState(loginAction, { error: '' });
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state.success) {
+      router.push('/');
+    }
+  }, [state, router]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
@@ -30,7 +36,7 @@ export default function LoginPage() {
         <h1 className="text-2xl font-bold mb-6 text-center">로그인</h1>
 
         <form action={formAction} className="space-y-4">
-          <div className="mb-4">
+          <div>
             <label
               htmlFor="email"
               className="block text-sm font-medium text-gray-700"
@@ -47,7 +53,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="mb-6">
+          <div>
             <label
               htmlFor="password"
               className="block text-sm font-medium text-gray-700"
@@ -65,9 +71,7 @@ export default function LoginPage() {
           </div>
 
           {state?.error && (
-            <p className="text-red-500 text-sm mb-4 text-center">
-              {state.error}
-            </p>
+            <p className="text-red-500 text-sm text-center">{state.error}</p>
           )}
 
           <SubmitButton />
@@ -75,7 +79,7 @@ export default function LoginPage() {
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
-            계정이 없으신가요?{" "}
+            계정이 없으신가요?{' '}
             <Link
               href="/signup"
               className="text-green-600 hover:text-green-800 font-medium"

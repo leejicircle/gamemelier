@@ -1,17 +1,54 @@
-'use client'
+'use client';
 
-import { useFormStatus } from 'react-dom'
-import { signupAction } from './actions'
-import { useActionState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
-import Link from 'next/link'
-import { useAuthStore } from '@/store/useAuthStore'
+import { useFormStatus } from 'react-dom';
+import { signupAction } from './actions';
+import { useActionState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import Link from 'next/link';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useProfileStore } from '@/store/useProfileStore';
 
-// 폼 제출 버튼 컴포넌트 (useFormStatus 사용)
+// (임시) 게임 장르 목록 예시 (실제론 Steam API에서 불러온 데이터로 대체)
+const GENRES = [
+  'Action',
+  'Adventure',
+  'RPG',
+  'Strategy',
+  'Simulation',
+  'Puzzle',
+  'Sports',
+];
+
+function GenreToggleList() {
+  const favoriteGenres = useProfileStore((state) => state.favoriteGenres);
+  const toggleGenre = useProfileStore((state) => state.toggleGenre);
+
+  return (
+    <div>
+      <p className="mb-2 font-semibold">선호 장르 선택</p>
+      <div className="flex flex-wrap gap-2">
+        {GENRES.map((genre) => (
+          <button
+            key={genre}
+            type="button"
+            onClick={() => toggleGenre(genre)}
+            className={`px-3 py-1 rounded ${
+              favoriteGenres.includes(genre)
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-300'
+            }`}
+          >
+            {genre}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 function SubmitButton() {
-  const { pending } = useFormStatus()
-  
+  const { pending } = useFormStatus();
+
   return (
     <button
       type="submit"
@@ -20,34 +57,38 @@ function SubmitButton() {
     >
       {pending ? '가입 중...' : '회원가입'}
     </button>
-  )
+  );
 }
 
 export default function SignupPage() {
-  const [state, formAction] = useActionState(signupAction, { error: '', success: false, user: undefined })
-  const router = useRouter()
-  const setUser = useAuthStore((state) => state.setUser)
+  const [state, formAction] = useActionState(signupAction, {
+    error: '',
+    success: false,
+    user: undefined,
+  });
+  const router = useRouter();
+  const setUser = useAuthStore((state) => state.setUser);
+  const favoriteGenres = useProfileStore((state) => state.favoriteGenres);
+  const resetGenres = useProfileStore((state) => state.resetGenres);
 
-  // 회원가입 성공 시 Zustand 스토어 업데이트 및 리다이렉트 처리
   useEffect(() => {
     if (state?.success && state?.user) {
-      console.log('회원가입 성공: Zustand 스토어 업데이트 및 리다이렉트 실행')
-      // Zustand 스토어에 사용자 정보 저장
-      setUser(state.user)
-      // 홈페이지로 리다이렉트
-      router.push('/')
+      console.log('회원가입 성공: Zustand 스토어 업데이트 및 리다이렉트 실행');
+      setUser(state.user);
+      resetGenres();
+      router.push('/login');
     }
-  }, [state?.success, state?.user, setUser, router])
+  }, [state?.success, state?.user, setUser, resetGenres, router]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
       <div className="p-8 bg-white rounded shadow-md w-96">
         <h1 className="text-2xl font-bold mb-6 text-center">회원가입</h1>
-        
+
         <form action={formAction} className="space-y-4">
           <div className="mb-4">
-            <label 
-              htmlFor="email" 
+            <label
+              htmlFor="email"
               className="block text-sm font-medium text-gray-700"
             >
               이메일
@@ -61,10 +102,10 @@ export default function SignupPage() {
               placeholder="이메일을 입력하세요"
             />
           </div>
-          
+
           <div className="mb-6">
-            <label 
-              htmlFor="password" 
+            <label
+              htmlFor="password"
               className="block text-sm font-medium text-gray-700"
             >
               비밀번호
@@ -79,21 +120,30 @@ export default function SignupPage() {
               placeholder="비밀번호를 입력하세요 (최소 6자)"
             />
           </div>
-          
+          {favoriteGenres.map((genre) => (
+            <input
+              key={genre}
+              type="hidden"
+              name="favoriteGenres"
+              value={genre}
+            />
+          ))}
+          <GenreToggleList />
+
           {state?.error && (
             <p className="text-red-500 text-sm mb-4 text-center">
               {state.error}
             </p>
           )}
-          
+
           <SubmitButton />
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600">
             이미 계정이 있으신가요?{' '}
-            <Link 
-              href="/login" 
+            <Link
+              href="/login"
               className="text-indigo-600 hover:text-indigo-800 font-medium"
             >
               로그인
@@ -102,5 +152,5 @@ export default function SignupPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { useAuthStore, User } from "@/store/useAuthStore";
-import { supabase } from "@/utils/supabase/client";
+import { useEffect } from 'react';
+import { useAuthStore, User } from '@/store/useAuthStore';
+import { supabase } from '@/lib/supabase/client';
 
 export default function ClientAuthStatus({
   initialUser,
@@ -24,7 +24,7 @@ export default function ClientAuthStatus({
           setUser(null);
         }
       } catch (error) {
-        console.error("onAuthStateChange error:", error);
+        console.error('onAuthStateChange error:', error);
       }
     });
 
@@ -32,7 +32,7 @@ export default function ClientAuthStatus({
       try {
         subscription?.unsubscribe();
       } catch (error) {
-        console.error("error", error);
+        console.error('error', error);
       }
     };
   }, [initialUser, setUser]);
