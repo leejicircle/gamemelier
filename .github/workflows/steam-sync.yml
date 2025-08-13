@@ -2,7 +2,7 @@ name: Steam Sync (Supabase Edge Function)
 
 on:
   schedule:
-    - cron: '* * * * *'
+    - cron: '*/5 * * * *'
 
   workflow_dispatch:
     inputs:
