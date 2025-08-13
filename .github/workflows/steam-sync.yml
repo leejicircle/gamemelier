@@ -1,18 +1,24 @@
 name: Steam Sync (Supabase Edge Function)
 
 on:
+  # ⏱ 테스트용: 1분마다 실행 (배포 땐 5~15분 권장)
   schedule:
     - cron: '* * * * *'
+  # ▶️ 수동 실행 버튼
   workflow_dispatch:
     inputs:
       limit:
-        description: 'Batch size (1~200)'
-        required: false
-        default: '100'
-      offset:
-        description: 'Optional offset'
+        description: 'Batch size (1~200). Omit to use default.'
         required: false
         default: ''
+      offset:
+        description: 'Optional offset (cursor). Omit to use saved cursor.'
+        required: false
+        default: ''
+
+concurrency:
+  group: steam-sync
+  cancel-in-progress: true
 
 jobs:
   run-sync:
@@ -20,20 +26,25 @@ jobs:
     timeout-minutes: 10
 
     env:
+      # Repository → Settings → Secrets and variables → Actions 설정 필요
       FUNCTION_URL: ${{ vars.SUPABASE_FUNCTION_URL }}
       SR_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # 없으면 100 사용
       DEFAULT_LIMIT: ${{ vars.SYNC_LIMIT }}
 
     steps:
-      - name: Install jq (for pretty JSON)
+      - name: Check required envs
+        run: |
+          set -e
+          [ -z "$FUNCTION_URL" ] && { echo "❌ Missing env vars.SUPABASE_FUNCTION_URL"; exit 1; }
+          [ -z "$SR_KEY" ] && { echo "❌ Missing secret SUPABASE_SERVICE_ROLE_KEY"; exit 1; }
+          echo "✅ Env check OK"
+          echo "FUNCTION_URL=$FUNCTION_URL"
+
+      - name: Install jq (pretty JSON)
         run: |
           sudo apt-get update -y
           sudo apt-get install -y jq
-
-      - name: Show trigger info
-        run: |
-          echo "Triggered by: ${{ github.event_name }}"
-          echo "Function URL: $FUNCTION_URL"
 
       - name: Health check (GET ?health=1)
         run: |
@@ -43,39 +54,44 @@ jobs:
             -H "apikey: ${SR_KEY}" \
             -H "Accept: application/json" | jq .
 
-      - name: Decide limit/offset
+      - name: Decide limit/offset (works for cron & manual)
         id: decide
         run: |
-          INPUT_LIMIT="${{ github.event.inputs.limit }}"
-          INPUT_OFFSET="${{ github.event.inputs.offset }}"
-          if [ -z "$INPUT_LIMIT" ]; then INPUT_LIMIT="${DEFAULT_LIMIT:-100}"; fi
-          echo "limit=$INPUT_LIMIT"   >> $GITHUB_OUTPUT
-          echo "offset=$INPUT_OFFSET" >> $GITHUB_OUTPUT
+          # Inputs only exist for workflow_dispatch. For cron they are empty.
+          RAW_LIMIT="${{ github.event.inputs.limit }}"
+          RAW_OFFSET="${{ github.event.inputs.offset }}"
+          # Fallbacks
+          : "${DEFAULT_LIMIT:=100}"
+          if [ -z "$RAW_LIMIT" ]; then LIMIT="$DEFAULT_LIMIT"; else LIMIT="$RAW_LIMIT"; fi
+          OFFSET="$RAW_OFFSET"
+          echo "limit=$LIMIT"   >> "$GITHUB_OUTPUT"
+          echo "offset=$OFFSET" >> "$GITHUB_OUTPUT"
+          echo "➡️ Using limit=$LIMIT offset='${OFFSET}'"
 
-      - name: Run sync (POST)
+      - name: Run sync (POST to Edge Function)
         run: |
           set -e
           LIMIT="${{ steps.decide.outputs.limit }}"
           OFFSET="${{ steps.decide.outputs.offset }}"
-          echo "POST with limit=${LIMIT} offset=${OFFSET}"
-
           BODY="{\"limit\": ${LIMIT}}"
           if [ -n "$OFFSET" ]; then BODY="{\"limit\": ${LIMIT}, \"offset\": ${OFFSET}}"; fi
 
+          echo "POST $FUNCTION_URL with body: $BODY"
           curl -sS -X POST "$FUNCTION_URL" \
             -H "Authorization: Bearer ${SR_KEY}" \
             -H "apikey: ${SR_KEY}" \
             -H "Content-Type: application/json" \
             -d "$BODY" | tee response.json
 
-          echo "---- Response ----"
+          echo "---- Response (pretty) ----"
           cat response.json | jq .
 
-      - name: Fail on explicit error
+      - name: Fail on explicit error field
         run: |
           set -e
           ERR=$(jq -r '.error // empty' response.json)
           if [ -n "$ERR" ]; then
-            echo "Edge Function error: $ERR"
+            echo "❌ Edge Function error: $ERR"
             exit 1
           fi
+          echo "✅ No error field in response"
