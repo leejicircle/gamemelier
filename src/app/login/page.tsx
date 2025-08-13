@@ -1,24 +1,10 @@
 'use client';
 
-import { useFormStatus } from 'react-dom';
 import { useActionState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { loginAction } from './actions';
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-    >
-      {pending ? '로그인 중...' : '로그인'}
-    </button>
-  );
-}
+import SubmitButton from '@/components/SubmitButton';
 
 export default function LoginPage() {
   const [state, formAction] = useActionState(loginAction, { error: '' });
@@ -74,7 +60,7 @@ export default function LoginPage() {
             <p className="text-red-500 text-sm text-center">{state.error}</p>
           )}
 
-          <SubmitButton />
+          <SubmitButton text="로그인" />
         </form>
 
         <div className="mt-6 text-center">

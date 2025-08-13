@@ -1,30 +1,17 @@
-import ClientAuthStatus from '@/components/auth/ClientAuthStatus';
-
 import { createClient } from '@/lib/supabase/server';
+import MainView from '@/components/main/MainView';
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const initialFilters = { genres: [], isFree: undefined, priceMax: undefined };
 
-  console.log(user?.email);
+  const { data: games } = await supabase
+    .from('games')
+    .select('app_id,name,header_image,genres,price_final,last_fetched_at')
+    .order('last_fetched_at', { ascending: false })
+    .limit(20);
+
   return (
-    <main style={{ padding: '20px' }}>
-      {user ? (
-        <>
-          <h1>환영합니다, {user.email}님!</h1>
-          {/* 클라이언트 컴포넌트에 초기 로그인 상태 전달 */}
-          <ClientAuthStatus initialUser={{ id: user.id, email: user.email! }} />
-          로그인
-        </>
-      ) : (
-        <>
-          <h1>환영합니다!</h1>
-          {/* 비로그인 상태임을 클라이언트 컴포넌트에 전달 */}
-          <ClientAuthStatus initialUser={null} />
-        </>
-      )}
-    </main>
+    <MainView initialGames={games ?? []} initialFilters={initialFilters} />
   );
 }

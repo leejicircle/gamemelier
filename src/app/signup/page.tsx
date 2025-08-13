@@ -1,6 +1,5 @@
 'use client';
 
-import { useFormStatus } from 'react-dom';
 import { signupAction } from './actions';
 import { useActionState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -8,6 +7,8 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useProfileStore } from '@/store/useProfileStore';
+import SubmitButton from '@/components/SubmitButton';
+import GenreToggleList from './components/GenreToggleList';
 
 // (임시) 게임 장르 목록 예시 (실제론 Steam API에서 불러온 데이터로 대체)
 const GENRES = [
@@ -20,46 +21,6 @@ const GENRES = [
   'Sports',
 ];
 
-function GenreToggleList() {
-  const favoriteGenres = useProfileStore((state) => state.favoriteGenres);
-  const toggleGenre = useProfileStore((state) => state.toggleGenre);
-
-  return (
-    <div>
-      <p className="mb-2 font-semibold">선호 장르 선택</p>
-      <div className="flex flex-wrap gap-2">
-        {GENRES.map((genre) => (
-          <button
-            key={genre}
-            type="button"
-            onClick={() => toggleGenre(genre)}
-            className={`px-3 py-1 rounded ${
-              favoriteGenres.includes(genre)
-                ? 'bg-green-600 text-white'
-                : 'bg-gray-300'
-            }`}
-          >
-            {genre}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-function SubmitButton() {
-  const { pending } = useFormStatus();
-
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-    >
-      {pending ? '가입 중...' : '회원가입'}
-    </button>
-  );
-}
-
 export default function SignupPage() {
   const [state, formAction] = useActionState(signupAction, {
     error: '',
@@ -69,6 +30,7 @@ export default function SignupPage() {
   const router = useRouter();
   const setUser = useAuthStore((state) => state.setUser);
   const favoriteGenres = useProfileStore((state) => state.favoriteGenres);
+  const toggleGenre = useProfileStore((state) => state.toggleGenre);
   const resetGenres = useProfileStore((state) => state.resetGenres);
 
   useEffect(() => {
@@ -128,7 +90,11 @@ export default function SignupPage() {
               value={genre}
             />
           ))}
-          <GenreToggleList />
+          <GenreToggleList
+            genres={GENRES}
+            favoriteGenres={favoriteGenres}
+            toggleGenre={toggleGenre}
+          />
 
           {state?.error && (
             <p className="text-red-500 text-sm mb-4 text-center">
@@ -136,7 +102,7 @@ export default function SignupPage() {
             </p>
           )}
 
-          <SubmitButton />
+          <SubmitButton text="회원가입" />
         </form>
 
         <div className="mt-6 text-center">
