@@ -1,10 +1,10 @@
 name: Steam Sync (Supabase Edge Function)
 
 on:
-  # ⏱ 테스트용: 1분마다 실행 (배포 땐 5~15분 권장)
+  # ⏱ 테스트용: 1분마다 실행 (운영은 5~15분 권장)
   schedule:
     - cron: '* * * * *'
-  # ▶️ 수동 실행 버튼
+  # ▶️ 수동 실행
   workflow_dispatch:
     inputs:
       limit:
@@ -27,17 +27,16 @@ jobs:
 
     env:
       # Repository → Settings → Secrets and variables → Actions 설정 필요
-      FUNCTION_URL: ${{ vars.SUPABASE_FUNCTION_URL }}
-      SR_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      # 없으면 100 사용
-      DEFAULT_LIMIT: ${{ vars.SYNC_LIMIT }}
+      FUNCTION_URL: ${{ vars.SUPABASE_FUNCTION_URL }} # 예: https://<project-ref>.supabase.co/functions/v1/steam-sync
+      API_KEY: ${{ secrets.SUPABASE_ANON_KEY }} # 호출용: Anon Public Key
+      DEFAULT_LIMIT: ${{ vars.SYNC_LIMIT }} # 기본 배치 크기 (예: 100)
 
     steps:
       - name: Check required envs
         run: |
           set -e
-          [ -z "$FUNCTION_URL" ] && { echo "❌ Missing env vars.SUPABASE_FUNCTION_URL"; exit 1; }
-          [ -z "$SR_KEY" ] && { echo "❌ Missing secret SUPABASE_SERVICE_ROLE_KEY"; exit 1; }
+          [ -z "$FUNCTION_URL" ] && { echo "❌ Missing vars.SUPABASE_FUNCTION_URL"; exit 1; }
+          [ -z "$API_KEY" ] && { echo "❌ Missing secrets.SUPABASE_ANON_KEY"; exit 1; }
           echo "✅ Env check OK"
           echo "FUNCTION_URL=$FUNCTION_URL"
 
@@ -50,17 +49,15 @@ jobs:
         run: |
           set -e
           curl -sS -X GET "${FUNCTION_URL}?health=1" \
-            -H "Authorization: Bearer ${SR_KEY}" \
-            -H "apikey: ${SR_KEY}" \
+            -H "Authorization: Bearer ${API_KEY}" \
+            -H "apikey: ${API_KEY}" \
             -H "Accept: application/json" | jq .
 
-      - name: Decide limit/offset (works for cron & manual)
+      - name: Decide limit/offset (cron & manual)
         id: decide
         run: |
-          # Inputs only exist for workflow_dispatch. For cron they are empty.
           RAW_LIMIT="${{ github.event.inputs.limit }}"
           RAW_OFFSET="${{ github.event.inputs.offset }}"
-          # Fallbacks
           : "${DEFAULT_LIMIT:=100}"
           if [ -z "$RAW_LIMIT" ]; then LIMIT="$DEFAULT_LIMIT"; else LIMIT="$RAW_LIMIT"; fi
           OFFSET="$RAW_OFFSET"
@@ -78,8 +75,8 @@ jobs:
 
           echo "POST $FUNCTION_URL with body: $BODY"
           curl -sS -X POST "$FUNCTION_URL" \
-            -H "Authorization: Bearer ${SR_KEY}" \
-            -H "apikey: ${SR_KEY}" \
+            -H "Authorization: Bearer ${API_KEY}" \
+            -H "apikey: ${API_KEY}" \
             -H "Content-Type: application/json" \
             -d "$BODY" | tee response.json
 
