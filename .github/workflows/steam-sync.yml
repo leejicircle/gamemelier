@@ -27,7 +27,7 @@ jobs:
       # 리포지토리 Settings → Variables/Secrets에서 설정
       FUNCTION_URL: ${{ vars.SUPABASE_FUNCTION_URL }}
       API_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-      DEFAULT_LIMIT: ${{ vars.SYNC_LIMIT }} # 예: 200 권장 (Edge 상한 200)
+      DEFAULT_LIMIT: ${{ vars.SYNC_LIMIT }}
 
     steps:
       - name: 필수 환경변수 점검
@@ -72,7 +72,6 @@ jobs:
           # Edge Function  
           if [ "$LIMIT" -gt 200 ]; then
             echo "ℹ️ 입력한 limit=$LIMIT  초과하여 보정."
-            LIMIT=200
           fi
           if [ "$LIMIT" -lt 1 ]; then
             echo "ℹ️ 입력한 limit=$LIMIT 가 유효하지 않아 1로 보정."
