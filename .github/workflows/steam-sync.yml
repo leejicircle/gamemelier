@@ -2,16 +2,15 @@ name: Steam Sync (Supabase Edge Function)
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
-
+    - cron: '*/5 * * * *' # 5분마다
   workflow_dispatch:
     inputs:
       limit:
-        description: 'Batch size (1~200). Omit to use default.'
+        description: '한 번에 저장 시도 개수 (미입력 시 기본값 사용)'
         required: false
         default: ''
       offset:
-        description: 'Optional offset (cursor). Omit to use saved cursor.'
+        description: '옵션: 시작 오프셋(커서). 미입력 시 저장된 커서 사용'
         required: false
         default: ''
 
@@ -25,69 +24,98 @@ jobs:
     timeout-minutes: 10
 
     env:
-      # Repository → Settings → Secrets and variables → Actions 설정 필요
-      FUNCTION_URL: ${{ vars.SUPABASE_FUNCTION_URL }} # 예: https://<project-ref>.supabase.co/functions/v1/steam-sync
-      API_KEY: ${{ secrets.SUPABASE_ANON_KEY }} # 호출용: Anon Public Key
-      DEFAULT_LIMIT: ${{ vars.SYNC_LIMIT }} # 기본 배치 크기 (예: 100)
+      # 리포지토리 Settings → Variables/Secrets에서 설정
+      FUNCTION_URL: ${{ vars.SUPABASE_FUNCTION_URL }}
+      API_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      DEFAULT_LIMIT: ${{ vars.SYNC_LIMIT }} # 예: 200 권장 (Edge 상한 200)
 
     steps:
-      - name: Check required envs
+      - name: 필수 환경변수 점검
         run: |
           set -e
-          [ -z "$FUNCTION_URL" ] && { echo "❌ Missing vars.SUPABASE_FUNCTION_URL"; exit 1; }
-          [ -z "$API_KEY" ] && { echo "❌ Missing secrets.SUPABASE_ANON_KEY"; exit 1; }
-          echo "✅ Env check OK"
+          [ -z "$FUNCTION_URL" ] && { echo "❌ SUPABASE_FUNCTION_URL 변수가 설정되지 않았습니다."; exit 1; }
+          [ -z "$API_KEY" ] && { echo "❌ SUPABASE_ANON_KEY 시크릿이 설정되지 않았습니다."; exit 1; }
+          echo "✅ 환경 점검 완료"
           echo "FUNCTION_URL=$FUNCTION_URL"
 
-      - name: Install jq (pretty JSON)
+      - name: jq 설치 (JSON 출력용)
         run: |
           sudo apt-get update -y
           sudo apt-get install -y jq
 
-      - name: Health check (GET ?health=1)
+      - name: 헬스 체크 (GET ?health=1)
         run: |
           set -e
+          echo "🔎 헬스 체크를 수행합니다..."
           curl -sS -X GET "${FUNCTION_URL}?health=1" \
             -H "Authorization: Bearer ${API_KEY}" \
             -H "apikey: ${API_KEY}" \
             -H "Accept: application/json" | jq .
+          echo "✅ 헬스 체크 완료"
 
-      - name: Decide limit/offset (cron & manual)
+      - name: limit / offset 결정 (스케줄 또는 수동 실행 입력 반영)
         id: decide
         run: |
           RAW_LIMIT="${{ github.event.inputs.limit }}"
           RAW_OFFSET="${{ github.event.inputs.offset }}"
-          : "${DEFAULT_LIMIT:=100}"
-          if [ -z "$RAW_LIMIT" ]; then LIMIT="$DEFAULT_LIMIT"; else LIMIT="$RAW_LIMIT"; fi
+
+          # 기본값: 리포지토리 변수 DEFAULT_LIMIT, 없으면 200 사용
+          : "${DEFAULT_LIMIT:=200}"
+
+          # 입력값이 없으면 기본값 사용
+          if [ -z "$RAW_LIMIT" ]; then
+            LIMIT="$DEFAULT_LIMIT"
+          else
+            LIMIT="$RAW_LIMIT"
+          fi
+
+          # Edge Function  
+          if [ "$LIMIT" -gt 200 ]; then
+            echo "ℹ️ 입력한 limit=$LIMIT  초과하여 보정."
+            LIMIT=200
+          fi
+          if [ "$LIMIT" -lt 1 ]; then
+            echo "ℹ️ 입력한 limit=$LIMIT 가 유효하지 않아 1로 보정."
+            LIMIT=1
+          fi
+
           OFFSET="$RAW_OFFSET"
+
           echo "limit=$LIMIT"   >> "$GITHUB_OUTPUT"
           echo "offset=$OFFSET" >> "$GITHUB_OUTPUT"
-          echo "➡️ Using limit=$LIMIT offset='${OFFSET}'"
+          echo "➡️ 최종 사용 값: limit=$LIMIT, offset='${OFFSET}'"
 
-      - name: Run sync (POST to Edge Function)
+      - name: 동기화 실행 (Edge Function에 POST)
         run: |
           set -e
           LIMIT="${{ steps.decide.outputs.limit }}"
           OFFSET="${{ steps.decide.outputs.offset }}"
-          BODY="{\"limit\": ${LIMIT}}"
-          if [ -n "$OFFSET" ]; then BODY="{\"limit\": ${LIMIT}, \"offset\": ${OFFSET}}"; fi
 
-          echo "POST $FUNCTION_URL with body: $BODY"
+          # 요청 본문 구성
+          BODY="{\"limit\": ${LIMIT}}"
+          if [ -n "$OFFSET" ]; then
+            BODY="{\"limit\": ${LIMIT}, \"offset\": ${OFFSET}}"
+          fi
+
+          echo "🚀 Edge Function 호출을 시작합니다."
+          echo "URL: $FUNCTION_URL"
+          echo "요청 본문: $BODY"
+
           curl -sS -X POST "$FUNCTION_URL" \
             -H "Authorization: Bearer ${API_KEY}" \
             -H "apikey: ${API_KEY}" \
             -H "Content-Type: application/json" \
             -d "$BODY" | tee response.json
 
-          echo "---- Response (pretty) ----"
+          echo "---- 응답 (pretty) ----"
           cat response.json | jq .
 
-      - name: Fail on explicit error field
+      - name: 응답 에러 필드 확인 (있으면 실패 처리)
         run: |
           set -e
           ERR=$(jq -r '.error // empty' response.json)
           if [ -n "$ERR" ]; then
-            echo "❌ Edge Function error: $ERR"
+            echo "❌ Edge Function 에러 감지: $ERR"
             exit 1
           fi
-          echo "✅ No error field in response"
+          echo "✅ 에러 필드 없음. 작업 성공"

@@ -30,8 +30,8 @@ export type GameRow = {
   genres: string[];
   categories: string[];
   metacritic: number | null;
-  platforms: string[]; // 현재 스키마에 존재 → 빈 배열로라도 저장
+  platforms: string[];
   header_image: string | null;
   last_fetched_at: string;
-  raw: RawPayload | null; // 축약본 저장
+  raw: RawPayload | null;
 };

@@ -6,14 +6,12 @@ import type {
 } from '@/types/steam';
 import type { RawPayload } from '@/types/db';
 
-// 문자열 → Date (실패 시 null)
 export function toDateOrNull(input?: string): Date | null {
   if (!input) return null;
   const dateObject = new Date(input);
   return Number.isNaN(dateObject.getTime()) ? null : dateObject;
 }
 
-// Steam 상세 응답에서 필요한 부가 정보만 추려 raw 축약본 구성
 export function buildRawPayload(
   detail: SteamAppDetail,
   imageLimit: number,
