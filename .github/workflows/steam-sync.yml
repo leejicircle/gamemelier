@@ -59,8 +59,8 @@ jobs:
           RAW_LIMIT="${{ github.event.inputs.limit }}"
           RAW_OFFSET="${{ github.event.inputs.offset }}"
 
-          # 기본값: 리포지토리 변수 DEFAULT_LIMIT, 없으면 200 사용
-          : "${DEFAULT_LIMIT:=200}"
+          # 기본값: 리포지토리 변수 DEFAULT_LIMIT
+          : "${DEFAULT_LIMIT:=400}"
 
           # 입력값이 없으면 기본값 사용
           if [ -z "$RAW_LIMIT" ]; then
