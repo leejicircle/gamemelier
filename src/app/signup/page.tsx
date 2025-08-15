@@ -10,16 +10,8 @@ import { useProfileStore } from '@/store/useProfileStore';
 import SubmitButton from '@/components/SubmitButton';
 import GenreToggleList from './components/GenreToggleList';
 
-// (임시) 게임 장르 목록 예시 (실제론 Steam API에서 불러온 데이터로 대체)
-const GENRES = [
-  'Action',
-  'Adventure',
-  'RPG',
-  'Strategy',
-  'Simulation',
-  'Puzzle',
-  'Sports',
-];
+import { useQuery } from '@tanstack/react-query';
+import { fetchGenres } from '@/lib/queries/fetchGenres';
 
 export default function SignupPage() {
   const [state, formAction] = useActionState(signupAction, {
@@ -28,19 +20,28 @@ export default function SignupPage() {
     user: undefined,
   });
   const router = useRouter();
-  const setUser = useAuthStore((state) => state.setUser);
-  const favoriteGenres = useProfileStore((state) => state.favoriteGenres);
-  const toggleGenre = useProfileStore((state) => state.toggleGenre);
-  const resetGenres = useProfileStore((state) => state.resetGenres);
+  const setUser = useAuthStore((s) => s.setUser);
+  const favoriteGenres = useProfileStore((s) => s.favoriteGenres);
+  const toggleGenre = useProfileStore((s) => s.toggleGenre);
+  const resetGenres = useProfileStore((s) => s.resetGenres);
+
+  // 🔹 DB에서 장르 로드 (React Query)
+  const { data: genresData, isLoading } = useQuery({
+    queryKey: ['genres'],
+    queryFn: fetchGenres,
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     if (state?.success && state?.user) {
-      console.log('회원가입 성공: Zustand 스토어 업데이트 및 리다이렉트 실행');
       setUser(state.user);
-      resetGenres();
+      resetGenres(); // 가입 완료 후 선택값 초기화
       router.push('/login');
     }
   }, [state?.success, state?.user, setUser, resetGenres, router]);
+
+  // 화면에 뿌릴 장르 이름 배열 (로딩/실패 fallback)
+  const genreNames = (genresData ?? []).map((g) => g.name);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
@@ -82,6 +83,8 @@ export default function SignupPage() {
               placeholder="비밀번호를 입력하세요 (최소 6자)"
             />
           </div>
+
+          {/* 선택된 장르를 서버 액션으로 보내기 위한 hidden inputs */}
           {favoriteGenres.map((genre) => (
             <input
               key={genre}
@@ -90,11 +93,16 @@ export default function SignupPage() {
               value={genre}
             />
           ))}
+
+          {/* 🔹 장르 토글 UI (로딩 중엔 비활성/스켈레톤 처리) */}
           <GenreToggleList
-            genres={GENRES}
+            genres={genreNames}
             favoriteGenres={favoriteGenres}
             toggleGenre={toggleGenre}
           />
+          {isLoading && (
+            <p className="text-xs text-gray-400">장르 불러오는 중…</p>
+          )}
 
           {state?.error && (
             <p className="text-red-500 text-sm mb-4 text-center">
