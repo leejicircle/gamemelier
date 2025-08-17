@@ -8,3 +8,14 @@ export async function fetchGenres(): Promise<Genre[]> {
   if (error) throw error;
   return data ?? [];
 }
+export async function fetchGenresByIds(ids: number[]): Promise<Genre[]> {
+  const { data, error } = await supabase
+    .from('genres')
+    .select('id, name')
+    .in('id', ids)
+    .order('name');
+
+  if (error) throw error;
+
+  return data ?? [];
+}

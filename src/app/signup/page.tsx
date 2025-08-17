@@ -11,7 +11,7 @@ import SubmitButton from '@/components/SubmitButton';
 import GenreToggleList from './components/GenreToggleList';
 
 import { useQuery } from '@tanstack/react-query';
-import { fetchGenres } from '@/lib/queries/fetchGenres';
+import { fetchGenresByIds } from '@/lib/queries/fetchGenres';
 
 export default function SignupPage() {
   const [state, formAction] = useActionState(signupAction, {
@@ -25,12 +25,18 @@ export default function SignupPage() {
   const toggleGenre = useProfileStore((s) => s.toggleGenre);
   const resetGenres = useProfileStore((s) => s.resetGenres);
 
+  const ids = [1, 3];
   // 🔹 DB에서 장르 로드 (React Query)
   const { data: genresData, isLoading } = useQuery({
-    queryKey: ['genres'],
-    queryFn: fetchGenres,
+    queryKey: ['genres', ids],
+    queryFn: () => fetchGenresByIds(ids),
     staleTime: 60_000,
   });
+  // const { data: genresData, isLoading } = useQuery({
+  //   queryKey: ['genres'],
+  //   queryFn: fetchGenres,
+  //   staleTime: 60_000,
+  // });
 
   useEffect(() => {
     if (state?.success && state?.user) {
