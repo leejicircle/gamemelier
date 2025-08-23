@@ -1,21 +1,11 @@
 import { supabase } from '@/lib/supabase/client';
 export type Genre = { id: number; name: string };
-export async function fetchGenres(): Promise<Genre[]> {
-  const { data, error } = await supabase
-    .from('genres')
-    .select('id, name')
-    .order('name');
-  if (error) throw error;
-  return data ?? [];
-}
-export async function fetchGenresByIds(ids: number[]): Promise<Genre[]> {
-  const { data, error } = await supabase
-    .from('genres')
-    .select('id, name')
-    .in('id', ids)
-    .order('name');
 
+export async function saveSignupGenres(genres: string[]) {
+  const { data: session } = await supabase.auth.getSession();
+  if (!session.session) throw new Error('로그인이 필요합니다.');
+  const { error } = await supabase.rpc('set_signup_genres', {
+    p_genres: genres,
+  });
   if (error) throw error;
-
-  return data ?? [];
 }

@@ -3,14 +3,13 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { User } from '@/store/useAuthStore';
+import { toKoAuthError } from '@/lib/utils';
 
 function toGenres(arr: FormDataEntryValue[]): string[] {
-  // FormData.getAll('favoriteGenres') → (string|string[]) 혼재 가능성 대비
   const flat = arr
     .flatMap((v) => (Array.isArray(v) ? v : [v]))
     .map((v) => String(v).trim())
     .filter(Boolean);
-  // 중복 제거 + 순서 유지
   return [...new Set(flat)];
 }
 
@@ -22,6 +21,7 @@ export async function signupAction(
 
   const email = (formData.get('email') as string)?.trim();
   const password = formData.get('password') as string;
+  const nickname = (formData.get('nickname') as string)?.trim();
   const favoriteGenresRaw = formData.getAll('favoriteGenres');
   const favoriteGenres = toGenres(favoriteGenresRaw);
 
@@ -31,32 +31,42 @@ export async function signupAction(
   if (password.length < 6) {
     return { error: '비밀번호는 최소 6자 이상이어야 합니다.', success: false };
   }
+  if (nickname && nickname.length > 10) {
+    return { error: '닉네임은 10자 이내로 입력해주세요.', success: false };
+  }
 
-  // 1) 회원가입
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
   });
   if (authError) {
-    return { error: authError.message, success: false };
+    return { error: toKoAuthError(authError), success: false };
   }
 
   const hasSession = Boolean(authData.session);
+  const userId = authData.user?.id;
 
-  // 3) 선호 장르 RPC 호출
-  // - profiles.favorite_genres 저장
-  // - user_genre_preferences에 weight=1.0 시드
-  if (hasSession && favoriteGenres.length > 0) {
-    const { error: rpcError } = await supabase.rpc('set_signup_genres', {
-      p_genres: favoriteGenres,
-    });
-    if (rpcError) {
-      // RPC 실패해도 회원가입 자체는 성공 → 메시지만 남기고 진행
-      console.error('[set_signup_genres] RPC error:', rpcError.message);
+  if (hasSession && userId) {
+    if (nickname) {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ nickname })
+        .eq('id', userId);
+      if (error) {
+        console.error('[profiles.nickname] update 에러:', error.message);
+      }
+    }
+
+    if (favoriteGenres.length > 0) {
+      const { error: rpcError } = await supabase.rpc('set_signup_genres', {
+        p_genres: favoriteGenres,
+      });
+      if (rpcError) {
+        console.error('[set_signup_genres] RPC 에러:', rpcError.message);
+      }
     }
   }
 
-  // 4) 반환
   revalidatePath('/', 'layout');
   return {
     error: '',

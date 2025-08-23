@@ -1,58 +1,71 @@
+// app/mypage/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   fetchSavedList,
   type SavedGameItem,
 } from '@/lib/queries/savedGamesApi';
-import GameCard from '@/components/main/GameCard';
+import { CardsGrid } from '@/app/shared/components/CardsGrid';
+import type { CardItem } from '@/types/games';
+import GenreModal from './components/GenreModal';
 
 export default function MyPage() {
   const [items, setItems] = useState<SavedGameItem[]>([]);
-  const [sort, setSort] = useState<'recent' | 'mc' | 'release'>('recent');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       setLoading(true);
+
       try {
-        const { items } = await fetchSavedList({ sort, limit: 30, offset: 0 });
-        setItems(items);
+        const { items: first } = await fetchSavedList();
+        if (cancelled) return;
+        setItems(first);
+      } catch (e) {
+        console.error('[mypage:first-load]', e);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
-  }, [sort]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const cardItems: CardItem[] = useMemo(
+    () =>
+      items.map((s) => ({
+        id: s.id,
+        name: s.name,
+        image: s.cover_url ?? '',
+      })),
+    [items],
+  );
+
+  const savedSet = useMemo(() => new Set(items.map((s) => s.id)), [items]);
+  function handleSavedChange(gameId: number, saved: boolean) {
+    if (!saved) {
+      setItems((prev) => prev.filter((x) => x.id !== gameId));
+    }
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-2">
-        <select
-          value={sort}
-          onChange={(e) =>
-            setSort(e.target.value as 'recent' | 'mc' | 'release')
-          }
-          className="border px-2 py-1 rounded"
-        >
-          <option value="recent">최근 저장순</option>
-          <option value="mc">메타크리틱 순</option>
-          <option value="release">발매일 최신</option>
-        </select>
-      </div>
-
-      {loading ? (
-        <div>불러오는 중…</div>
-      ) : items.length === 0 ? (
-        <div>저장한 게임이 없습니다.</div>
-      ) : (
-        <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {items.map((item) => (
-            <li key={item.id}>
-              <GameCard item={item} />
-            </li>
-          ))}
-        </ul>
+    <div className="container space-y-4">
+      <CardsGrid
+        title="저장한 게임"
+        items={cardItems}
+        isLoading={loading}
+        savedSet={savedSet}
+        onSavedChange={handleSavedChange}
+      />
+      {!loading && cardItems.length === 0 && (
+        <div className="px-4 text-sm text-muted-foreground">
+          저장한 게임이 없습니다.
+        </div>
       )}
+      <GenreModal />
     </div>
   );
 }

@@ -3,10 +3,15 @@
     "apikey",
     "appids",
     "applist",
+    "Embla",
+    "Gamemelier",
     "ilike",
     "Melier",
     "metacritic",
+    "oklch",
+    "Postgrest",
     "steamdb",
-    "supabase"
+    "supabase",
+    "topsellers"
   ]
 }

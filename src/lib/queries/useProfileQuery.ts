@@ -3,7 +3,6 @@ import { supabase } from '@/lib/supabase/client';
 
 export type Profile = {
   id: string;
-  steam_api_key: string | null;
   favorite_genres: string[] | null;
   created_at: string;
 };
@@ -14,10 +13,9 @@ export const useProfileQuery = (userId?: string) => {
     queryFn: async (): Promise<Profile | null> => {
       if (!userId) return null;
 
-      // row 없을 때 throw 대신 data=null 반환
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, steam_api_key, favorite_genres, created_at')
+        .select('id,favorite_genres, created_at')
         .eq('id', userId)
         .maybeSingle();
 

@@ -9,9 +9,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useProfileStore } from '@/store/useProfileStore';
 import SubmitButton from '@/components/SubmitButton';
 import GenreToggleList from './components/GenreToggleList';
-
-import { useQuery } from '@tanstack/react-query';
-import { fetchGenresByIds } from '@/lib/queries/fetchGenres';
+import { PARENT_CATEGORIES } from '@/lib/constants/categories';
 
 export default function SignupPage() {
   const [state, formAction] = useActionState(signupAction, {
@@ -25,29 +23,20 @@ export default function SignupPage() {
   const toggleGenre = useProfileStore((s) => s.toggleGenre);
   const resetGenres = useProfileStore((s) => s.resetGenres);
 
-  const ids = [1, 3];
-  // 🔹 DB에서 장르 로드 (React Query)
-  const { data: genresData, isLoading } = useQuery({
-    queryKey: ['genres', ids],
-    queryFn: () => fetchGenresByIds(ids),
-    staleTime: 60_000,
-  });
-  // const { data: genresData, isLoading } = useQuery({
-  //   queryKey: ['genres'],
-  //   queryFn: fetchGenres,
-  //   staleTime: 60_000,
-  // });
+  useEffect(() => {
+    resetGenres();
+    return () => resetGenres();
+  }, [resetGenres]);
 
   useEffect(() => {
     if (state?.success && state?.user) {
       setUser(state.user);
-      resetGenres(); // 가입 완료 후 선택값 초기화
+      resetGenres();
       router.push('/login');
     }
   }, [state?.success, state?.user, setUser, resetGenres, router]);
 
-  // 화면에 뿌릴 장르 이름 배열 (로딩/실패 fallback)
-  const genreNames = (genresData ?? []).map((g) => g.name);
+  const genreNames = PARENT_CATEGORIES as unknown as string[];
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
@@ -55,7 +44,7 @@ export default function SignupPage() {
         <h1 className="text-2xl font-bold mb-6 text-center">회원가입</h1>
 
         <form action={formAction} className="space-y-4">
-          <div className="mb-4">
+          <div>
             <label
               htmlFor="email"
               className="block text-sm font-medium text-gray-700"
@@ -67,12 +56,12 @@ export default function SignupPage() {
               name="email"
               type="email"
               required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+              className="text-gray-900 mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
               placeholder="이메일을 입력하세요"
             />
           </div>
 
-          <div className="mb-6">
+          <div>
             <label
               htmlFor="password"
               className="block text-sm font-medium text-gray-700"
@@ -85,12 +74,28 @@ export default function SignupPage() {
               type="password"
               required
               minLength={6}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+              className="text-gray-900 mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
               placeholder="비밀번호를 입력하세요 (최소 6자)"
             />
           </div>
 
-          {/* 선택된 장르를 서버 액션으로 보내기 위한 hidden inputs */}
+          <div>
+            <label
+              htmlFor="nickname"
+              className="block text-sm font-medium text-gray-700"
+            >
+              닉네임
+            </label>
+            <input
+              id="nickname"
+              name="nickname"
+              type="text"
+              maxLength={30}
+              className="text-gray-900 mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+              placeholder="닉네임 (최대 30자)"
+            />
+          </div>
+
           {favoriteGenres.map((genre) => (
             <input
               key={genre}
@@ -100,18 +105,14 @@ export default function SignupPage() {
             />
           ))}
 
-          {/* 🔹 장르 토글 UI (로딩 중엔 비활성/스켈레톤 처리) */}
           <GenreToggleList
             genres={genreNames}
             favoriteGenres={favoriteGenres}
             toggleGenre={toggleGenre}
           />
-          {isLoading && (
-            <p className="text-xs text-gray-400">장르 불러오는 중…</p>
-          )}
 
           {state?.error && (
-            <p className="text-red-500 text-sm mb-4 text-center">
+            <p className="text-red-500 text-sm mb-2 text-center">
               {state.error}
             </p>
           )}
