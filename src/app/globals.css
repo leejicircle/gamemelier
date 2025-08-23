@@ -46,9 +46,9 @@
 
 @theme inline {
   /*breakpoint*/
-  --breakpoint-sm: 360px; /* mobile */
-  --breakpoint-md: 768px; /* tablet */
-  --breakpoint-lg: 1440px; /* desktop */
+  --breakpoint-mobile: 360px; /* mobile */
+  --breakpoint-tablet: 768px; /* tablet */
+  --breakpoint-desktop: 1440px; /* desktop */
   --content-max: 1200px;
   --context-min: 360px;
 
@@ -93,36 +93,28 @@
   --color-purple2: var(--purple2);
   --color-gradient: var(--gradient);
 }
-
-@custom-media --sm (min-width: 360px);
-@custom-media --md (min-width: 768px);
-@custom-media --lg (min-width: 1440px);
-
 @layer utilities {
-  @media (min-width: 1024px) {
-    .container-margins {
-      margin-left: 120px;
-      margin-right: 0;
+  .container-fluid {
+    width: 100%;
+    max-width: 100%;
+
+    /* 기본 거터 */
+    padding-inline: 16px;
+  }
+
+  @media (min-width: 768px) {
+    .container-fluid {
+      padding-inline: 40px;
+    }
+  }
+
+  @media (min-width: 1440px) {
+    .container-fluid {
+      padding-inline: max(120px, calc((100vw - 1200px) / 2));
     }
   }
 }
 @layer components {
-  .container {
-    min-width: var(--content-min);
-    margin-inline: 16px; /* sm */
-  }
-  @media (min-width: 768px) {
-    .container {
-      margin-inline: 40px;
-    }
-  }
-  @media (min-width: 1440px) {
-    .container {
-      max-width: var(--content-max);
-      margin-inline: 120px;
-    }
-  }
-
   .gradient-border-wrap {
     @apply relative p-[2px] rounded-xl;
     background: transparent;
