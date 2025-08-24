@@ -15,7 +15,7 @@ export default function MainClient({
   const { data: upcoming = [], isLoading: isUpcomingLoading } =
     useUpcomingCards(limit, offset);
   return (
-    <section className="space-y-[120px] mb-[120px]">
+    <div className="space-y-[120px] mb-[120px]">
       <CardsCarousel
         title="인기게임 TOP"
         items={cardsQuery.data ?? []}
@@ -26,6 +26,7 @@ export default function MainClient({
         items={upcoming}
         isLoading={isUpcomingLoading}
       />
-    </section>
+      <div></div>
+    </div>
   );
 }

@@ -25,15 +25,17 @@ export default async function RootLayout({
   return (
     <html lang="ko" className={`${pretendard.variable}`}>
       <body>
-        <Providers>
-          <ClientAuthStatus
-            initialUser={user ? { id: user.id, email: user.email! } : null}
-          />
-          <Nav />
-          <main>{children}</main>
-          <Toaster richColors position="top-right" />
-          <Footer />
-        </Providers>
+        <div className="min-h-screen flex flex-col">
+          <Providers>
+            <ClientAuthStatus
+              initialUser={user ? { id: user.id, email: user.email! } : null}
+            />
+            <Nav />
+            <main className="flex-grow">{children}</main>
+            <Toaster richColors position="top-right" />
+            <Footer />
+          </Providers>
+        </div>
       </body>
     </html>
   );

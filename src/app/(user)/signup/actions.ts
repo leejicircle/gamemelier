@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { User } from '@/store/useAuthStore';
-import { toKoAuthError } from '@/lib/utils';
+import { AuthError } from '@/lib/utils';
 
 function toGenres(arr: FormDataEntryValue[]): string[] {
   const flat = arr
@@ -40,7 +40,7 @@ export async function signupAction(
     password,
   });
   if (authError) {
-    return { error: toKoAuthError(authError), success: false };
+    return { error: AuthError(authError), success: false };
   }
 
   const hasSession = Boolean(authData.session);

@@ -73,9 +73,9 @@ export default function GamesCarousel({
     setCurrent(api.selectedScrollSnap());
 
     const onSelect = () => {
-      videoRefs.current.forEach((v) => {
+      videoRefs.current.forEach((video) => {
         try {
-          if (v && !v.paused) v.pause();
+          if (video && !video.paused) video.pause();
         } catch {}
       });
       setCurrent(api.selectedScrollSnap());
@@ -97,7 +97,7 @@ export default function GamesCarousel({
     <div className={cn('flex-row justify-center', className)}>
       <Carousel
         setApi={setApi}
-        className="w-[800px] group"
+        className="max-w-[800px] group"
         opts={{ loop: true }}
       >
         <CarouselContent>

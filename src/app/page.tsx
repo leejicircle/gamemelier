@@ -59,16 +59,22 @@ export default async function MainPage() {
   return (
     <>
       <section>
-        <div className="relative w-full h-[445px]">
-          <Image src={bgImage} alt="hero image" fill sizes="100vw" priority />
+        <div className="absolute top-0 left-0 -z-2 h-[445px] w-full">
+          <Image
+            src={bgImage}
+            alt="hero image"
+            fill
+            sizes="100vw"
+            priority
+            className="opacity-30 object-cover"
+          />
+        </div>
+        <div className="mt-[80px]">
+          <HydrationBoundary state={dehydrate(qc)}>
+            <MainClient limit={limit} offset={offset} />
+          </HydrationBoundary>
         </div>
       </section>
-
-      <div className="-mt-65">
-        <HydrationBoundary state={dehydrate(qc)}>
-          <MainClient limit={limit} offset={offset} />
-        </HydrationBoundary>
-      </div>
     </>
   );
 }

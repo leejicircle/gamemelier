@@ -97,8 +97,8 @@
   .container-fluid {
     width: 100%;
     max-width: 100%;
-
-    /* 기본 거터 */
+    margin-top: 80px;
+    margin-bottom: 120px;
     padding-inline: 16px;
   }
 
@@ -110,7 +110,7 @@
 
   @media (min-width: 1440px) {
     .container-fluid {
-      padding-inline: max(120px, calc((100vw - 1200px) / 2));
+      padding-inline: min(240px, max(120px, calc((100vw - 1200px) / 2)));
     }
   }
 }

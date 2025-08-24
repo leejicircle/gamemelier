@@ -1,56 +1,41 @@
-'use client';
+// app/games/page.tsx
+import {
+  QueryClient,
+  dehydrate,
+  HydrationBoundary,
+} from '@tanstack/react-query';
+import {
+  fetchTopSellerIds,
+  fetchCardsByOrderedIdsServer,
+} from '@/lib/api/topSellers';
+import Client from './client';
 
-import { useState } from 'react';
-import { CardsGrid } from '@/app/shared/components/CardsGrid';
-import { useTopSellerCards } from '@/lib/hooks/useTopSellerCards';
-import type { CardItem } from '@/types/games';
+// ISR 주기(선택): Top Sellers가 자주 바뀌지 않으면 적절히 조정
+export const revalidate = 300; // 5분
 
-const PAGE_SIZE = 30;
+export default async function GamesPage() {
+  const limit = 30;
+  const offset = 0;
 
-export default function GamesPage() {
-  const [offset, setOffset] = useState(0);
-  const { topSellerIdsQuery, cardsQuery } = useTopSellerCards(
-    PAGE_SIZE,
-    offset,
-  );
+  const qc = new QueryClient();
 
-  const items: CardItem[] = cardsQuery.data ?? [];
-  const nextOffset = topSellerIdsQuery.data?.nextOffset ?? null;
+  const idsResp = await qc.fetchQuery({
+    queryKey: ['top-seller-ids', limit, offset],
+    queryFn: () => fetchTopSellerIds(limit, offset),
+    staleTime: 60_000,
+  });
 
-  const canPrev = offset > 0;
-  const canNext = nextOffset !== null;
-  const isLoading = topSellerIdsQuery.isLoading || cardsQuery.isLoading;
-
-  const goPrev = () => setOffset(Math.max(0, offset - PAGE_SIZE));
-  const goNext = () => {
-    if (nextOffset !== null) setOffset(nextOffset);
-  };
+  if (idsResp?.ids?.length) {
+    await qc.prefetchQuery({
+      queryKey: ['top-seller-cards', limit, offset, idsResp.ids],
+      queryFn: () => fetchCardsByOrderedIdsServer(idsResp.ids),
+      staleTime: 60_000,
+    });
+  }
 
   return (
-    <section className="container space-y-4">
-      <CardsGrid title="전체 인기게임" items={items} isLoading={isLoading} />
-
-      <div className="flex items-center justify-between">
-        <button
-          className="px-3 py-2 rounded bg-muted disabled:opacity-50"
-          onClick={goPrev}
-          disabled={!canPrev || isLoading}
-        >
-          이전
-        </button>
-
-        <div className="text-sm text-muted-foreground">
-          page {Math.floor(offset / PAGE_SIZE) + 1}
-        </div>
-
-        <button
-          className="px-3 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
-          onClick={goNext}
-          disabled={!canNext || isLoading}
-        >
-          다음
-        </button>
-      </div>
-    </section>
+    <HydrationBoundary state={dehydrate(qc)}>
+      {/* <Client limit={limit} offset={offset}  /> */}
+    </HydrationBoundary>
   );
 }

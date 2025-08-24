@@ -36,22 +36,25 @@ export default function ConfirmBuy({ appId }: Props) {
         </Button>
       </DialogTrigger>
 
-      <DialogContent>
-        <DialogHeader>
+      <DialogContent className="bg-gray-950 border-gray-800 border-1">
+        <DialogHeader className="mb-4">
           <DialogTitle className="text-white">
             스팀 구매창으로 이동하시겠습니까?
           </DialogTitle>
-          <DialogDescription className="text-white">
-            외부 사이트(스팀 스토어)로 이동합니다. 새 창에서 열립니다.
+          <DialogDescription className="text-gray-300">
+            외부 사이트(스팀 스토어)로 이동합니다.
+            <br /> 이동하는 사이트는 새창에서 열립니다.
           </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter>
+        <DialogFooter className="align-end">
           <DialogClose asChild>
-            <Button variant="white">취소</Button>
+            <Button className="bg-gray-600">취소</Button>
           </DialogClose>
 
-          <Button onClick={handleConfirm}>이동</Button>
+          <Button onClick={handleConfirm} variant={'purple'}>
+            이동
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

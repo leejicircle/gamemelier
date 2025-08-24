@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         gray: 'bg-gray-800 text-white',
-        purple: 'bg-purple text-gray-100',
+        purple: 'bg-purple2 text-gray-100',
         blue: 'bg-blue text-white',
         white: 'bg-white text-gray-800',
         gradient:

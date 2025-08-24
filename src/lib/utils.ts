@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 //로그인 관련 에러메시지 한글 변환
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function toKoAuthError(err: any): string {
+export function AuthError(err: any): string {
   const msg = String(err?.message ?? '').toLowerCase();
 
   if (msg.includes('already') && msg.includes('registered')) {
